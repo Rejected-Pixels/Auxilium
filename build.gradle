@@ -30,8 +30,9 @@ repositories {
     }
 }
 
+// Jar is named <mod_name>-<minecraft_version>-<mod_version>.jar, e.g. Auxilium-1.21.1-1.2.0.jar.
 base {
-    archivesName = mod_id
+    archivesName = "${mod_name}-${minecraft_version}"
 }
 
 // Mojang ships Java 21 to end users in 1.21.1, so mods should target Java 21.
