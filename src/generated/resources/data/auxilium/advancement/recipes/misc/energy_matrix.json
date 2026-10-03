@@ -1,0 +1,43 @@
+{
+  "parent": "minecraft:recipes/root",
+  "criteria": {
+    "has_collector_mk3": {
+      "conditions": {
+        "items": [
+          {
+            "items": "projecte:collector_mk3"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_relay_mk3": {
+      "conditions": {
+        "items": [
+          {
+            "items": "projecte:relay_mk3"
+          }
+        ]
+      },
+      "trigger": "minecraft:inventory_changed"
+    },
+    "has_the_recipe": {
+      "conditions": {
+        "recipe": "auxilium:energy_matrix"
+      },
+      "trigger": "minecraft:recipe_unlocked"
+    }
+  },
+  "requirements": [
+    [
+      "has_the_recipe",
+      "has_collector_mk3",
+      "has_relay_mk3"
+    ]
+  ],
+  "rewards": {
+    "recipes": [
+      "auxilium:energy_matrix"
+    ]
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "key": {
+    "C": {
+      "item": "projecte:collector_mk3"
+    },
+    "D": {
+      "item": "projecte:dark_matter"
+    },
+    "G": {
+      "item": "minecraft:glowstone"
+    },
+    "L": {
+      "item": "projecte:relay_mk3"
+    },
+    "R": {
+      "item": "projecte:red_matter"
+    }
+  },
+  "pattern": [
+    "DRD",
+    "CGL",
+    "DRD"
+  ],
+  "result": {
+    "count": 1,
+    "id": "auxilium:energy_matrix"
+  }
+}
