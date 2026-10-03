@@ -13,7 +13,8 @@ set -euo pipefail
 
 release_tag_pattern='^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)$'
 
-last_tag=$(git tag --list 'v*' --sort=-v:refname | grep -E "$release_tag_pattern" | head -n 1 || true)
+# Only tags reachable from HEAD count, so a tag on an unmerged feature branch doesn't affect main's numbering.
+last_tag=$(git tag --list 'v*' --merged HEAD --sort=-v:refname | grep -E "$release_tag_pattern" | head -n 1 || true)
 if [[ -n "$last_tag" ]]; then
   last_version=${last_tag#v}
   range="$last_tag..HEAD"
