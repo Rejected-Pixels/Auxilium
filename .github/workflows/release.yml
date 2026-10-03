@@ -43,7 +43,7 @@ jobs:
       create_tag: ${{ steps.resolve.outputs.create_tag }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # For a merged PR, use the merge commit that landed on main.
           ref: ${{ github.event.pull_request.merge_commit_sha || '' }}
@@ -84,7 +84,7 @@ jobs:
       contents: write # push the release tag
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.version.outputs.ref }}
 

@@ -25,18 +25,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
 
       - name: Setup JDK 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
+        # v5 is the newest release without the separately licensed caching component that v6 introduced.
+        uses: gradle/actions/setup-gradle@v5
 
       - name: Build with Gradle
         env:
@@ -53,10 +54,11 @@ jobs:
           minecraft_version=$(grep -E '^minecraft_version=' gradle.properties | cut -d= -f2-)
           echo "name=$mod_name-$minecraft_version-$VERSION" >> "$GITHUB_OUTPUT"
 
+      # archive: false (v7+) uploads the jar itself instead of a zip; the artifact is named after the file.
       - name: Upload jar
         if: inputs.upload
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.jar.outputs.name }}
           path: build/libs/${{ steps.jar.outputs.name }}.jar
+          archive: false
           if-no-files-found: error

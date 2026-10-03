@@ -1,13 +1,13 @@
 name: CI
 
-# Checks that every push and pull request builds. No artifact, no version, no tag.
+# Checks that main builds, plus on-demand builds of any branch. No artifact, version or tag.
+# Tag pushes and manual releases are built by release.yml.
 on:
   push:
-    branches: ['**']
-  pull_request:
-    types: [opened, synchronize, reopened]
+    branches: [main]
+  workflow_dispatch:
 
-# A newer push to the same branch/PR makes an in-progress check pointless.
+# A newer push to main makes an in-progress check pointless.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
