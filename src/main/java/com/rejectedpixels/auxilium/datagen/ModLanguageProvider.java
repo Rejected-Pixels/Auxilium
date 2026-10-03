@@ -13,6 +13,7 @@ public class ModLanguageProvider extends LanguageProvider {
     @Override
     protected void addTranslations() {
         addBlock(BlockRegistry.ENERGY_MATRIX, "Energy Matrix");
+        add("itemGroup.auxilium", "Auxilium");
 
         add("message.auxilium.energy_matrix.missing_blocks", "You need %s more Energy Matrix blocks");
         add("message.auxilium.energy_matrix.obstructed", "Not enough room: the Energy Matrix needs a clear 3x4x3 space");

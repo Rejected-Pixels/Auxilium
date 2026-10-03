@@ -3,6 +3,7 @@ package com.rejectedpixels.auxilium;
 import com.rejectedpixels.auxilium.config.AuxiliumConfig;
 import com.rejectedpixels.auxilium.registry.BlockEntityTypeRegistry;
 import com.rejectedpixels.auxilium.registry.BlockRegistry;
+import com.rejectedpixels.auxilium.registry.CreativeTabRegistry;
 import com.rejectedpixels.auxilium.registry.ItemRegistry;
 import com.rejectedpixels.auxilium.registry.MenuTypeRegistry;
 import org.slf4j.Logger;
@@ -47,5 +48,6 @@ public class Auxilium {
         ItemRegistry.register(modEventBus);
         BlockEntityTypeRegistry.register(modEventBus);
         MenuTypeRegistry.register(modEventBus);
+        CreativeTabRegistry.register(modEventBus);
     }
 }
