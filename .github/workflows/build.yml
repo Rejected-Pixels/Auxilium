@@ -16,6 +16,10 @@ on:
         description: Upload the jar as a workflow artifact.
         type: boolean
         default: false
+    outputs:
+      artifact_id:
+        description: ID of the uploaded jar artifact (empty unless upload is true).
+        value: ${{ jobs.build.outputs.artifact_id }}
 
 permissions:
   contents: read
@@ -23,6 +27,8 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      artifact_id: ${{ steps.upload.outputs.artifact-id }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -57,6 +63,7 @@ jobs:
       # archive: false (v7+) uploads the jar itself instead of a zip; the artifact is named after the file.
       - name: Upload jar
         if: inputs.upload
+        id: upload
         uses: actions/upload-artifact@v7
         with:
           path: build/libs/${{ steps.jar.outputs.name }}.jar

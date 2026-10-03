@@ -1,6 +1,7 @@
 name: Release
 
-# Builds a versioned jar artifact (<mod_name>-<minecraft_version>-<version>.jar) and tags it when:
+# Builds a versioned jar (<mod_name>-<minecraft_version>-<version>.jar) and publishes it as a GitHub Release
+# (tag vX.Y.Z, jar attached, generated notes; alpha/beta marked as pre-release) when:
 #   - a pull request is merged into main (version from its Conventional Commits)
 #   - a v* tag is pushed, on any branch (version from the tag)
 #   - the workflow is run manually
@@ -76,21 +77,33 @@ jobs:
       version: ${{ needs.version.outputs.version }}
       upload: true
 
-  tag:
+  publish:
     needs: [version, build]
-    if: needs.version.outputs.create_tag == 'true'
     runs-on: ubuntu-latest
     permissions:
-      contents: write # push the release tag
+      contents: write # create the tag and the GitHub Release
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
+      # download-artifact v8+ keeps unzipped (archive: false) artifacts as the file itself.
+      - name: Download jar
+        uses: actions/download-artifact@v8
         with:
-          ref: ${{ needs.version.outputs.ref }}
+          artifact-ids: ${{ needs.build.outputs.artifact_id }}
+          path: dist
 
-      - name: Tag release
+      # Creates the vX.Y.Z tag on the built commit if it doesn't exist yet (a pushed tag is reused),
+      # attaches the jar and writes release notes from the pull requests since the previous release.
+      # Versions with a pre-release label (alpha/beta) are marked as pre-releases.
+      - name: Create GitHub Release
         env:
+          GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.version.outputs.version }}
+          TARGET: ${{ needs.version.outputs.ref }}
         run: |
-          git tag "v$VERSION"
-          git push origin "v$VERSION"
+          jar=$(find dist -name '*.jar' -print -quit)
+          [[ -n "$jar" ]] || { echo "::error::No jar found in the downloaded artifact"; exit 1; }
+
+          args=(--repo "$GITHUB_REPOSITORY" --target "$TARGET" --title "v$VERSION" --generate-notes)
+          [[ "$VERSION" == *-* ]] && args+=(--prerelease)
+
+          gh release create "v$VERSION" "$jar" "${args[@]}"
+          echo "Released [v$VERSION]($GITHUB_SERVER_URL/$GITHUB_REPOSITORY/releases/tag/v$VERSION) with $(basename "$jar")" >> "$GITHUB_STEP_SUMMARY"
