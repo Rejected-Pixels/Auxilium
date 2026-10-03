@@ -5,6 +5,9 @@ name: Build
 #   - a v* tag is pushed, on any branch (version taken from the tag)
 #   - the workflow is run manually (main: next version; other branches: a pre-release), optionally with an explicit version
 # Every other push and pull request update just builds, to check it compiles.
+#
+# Anything released from outside main must be an alpha or beta pre-release (X.Y.Z-alpha.N / X.Y.Z-beta.N),
+# which also ends up in the jar name, e.g. Auxilium-1.21.1-0.2.0-beta.1.jar.
 on:
   push:
     branches: ['**']
@@ -13,8 +16,13 @@ on:
     types: [opened, synchronize, reopened, closed]
   workflow_dispatch:
     inputs:
+      channel:
+        description: 'auto = full release on main, alpha on other branches. "release" is only allowed on main.'
+        type: choice
+        options: [auto, alpha, beta, release]
+        default: auto
       version:
-        description: 'Version to release, SemVer 2.0 without the leading v (e.g. 1.2.0 or 1.2.0-beta.1). Leave empty to work it out.'
+        description: 'Optional exact version, SemVer 2.0 without the leading v (e.g. 1.2.0 or 1.2.0-beta.1). Overrides channel. Outside main it must be -alpha or -beta.'
         required: false
         default: ''
 
@@ -51,6 +59,7 @@ jobs:
           REF_TYPE: ${{ github.ref_type }}
           REF_NAME: ${{ github.ref_name }}
           INPUT_VERSION: ${{ github.event.inputs.version }}
+          INPUT_CHANNEL: ${{ github.event.inputs.channel }}
           RUN_NUMBER: ${{ github.run_number }}
         run: |
           bash .github/scripts/next-version.sh > "$RUNNER_TEMP/version.env"
@@ -59,6 +68,25 @@ jobs:
           # release: build + upload the jar. create_tag: also tag the commit (not needed when the run came from a tag).
           release=false
           create_tag=false
+
+          # Whether the commit being built is already part of main; anything else may only be released as alpha/beta.
+          on_main=false
+          if git rev-parse -q --verify refs/remotes/origin/main > /dev/null && git merge-base --is-ancestor HEAD origin/main; then
+            on_main=true
+          fi
+          is_alpha_or_beta() { [[ "$1" =~ ^[0-9]+\.[0-9]+\.[0-9]+-(alpha|beta)([.+]|$) ]]; }
+          require_prerelease_off_main() {
+            if [[ "$on_main" != "true" ]] && ! is_alpha_or_beta "$1"; then
+              echo "::error::'$1' is being released from outside main, so it must be an alpha or beta pre-release (e.g. $dev_base-alpha.1)"
+              exit 1
+            fi
+          }
+          # Next X.Y.Z-<channel>.N, counting up from any existing tags for that version and channel.
+          next_prerelease() {
+            local base="$1" channel="$2" last
+            last=$(git tag --list "v$base-$channel.*" | sed -nE "s/^v${base//./\\.}-$channel\.(0|[1-9][0-9]*)$/\1/p" | sort -n | tail -n 1)
+            echo "$base-$channel.$(( ${last:-0} + 1 ))"
+          }
 
           if [[ "$EVENT" == "pull_request" && "$PR_ACTION" == "closed" ]]; then
             if [[ "$PR_BASE" == "main" && "$bump" != "none" ]]; then
@@ -69,21 +97,30 @@ jobs:
             fi
           elif [[ "$EVENT" == "push" && "$REF_TYPE" == "tag" ]]; then
             version="${REF_NAME#v}"; release=true
+            require_prerelease_off_main "$version"
           elif [[ "$EVENT" == "workflow_dispatch" ]]; then
             release=true; create_tag=true
+            channel="${INPUT_CHANNEL:-auto}"
+            if [[ "$channel" == "auto" ]]; then
+              [[ "$on_main" == "true" ]] && channel=release || channel=alpha
+            fi
+
             if [[ -n "$INPUT_VERSION" ]]; then
               version="${INPUT_VERSION#v}"
-            elif [[ "$REF" == "refs/heads/main" ]]; then
+              require_prerelease_off_main "$version"
+            elif [[ "$channel" == "release" ]]; then
+              if [[ "$on_main" != "true" ]]; then
+                echo "::error::Full releases can only be made from main. Pick the alpha or beta channel for $REF_NAME."
+                exit 1
+              fi
               if [[ "$bump" == "none" ]]; then
                 echo "::error::No feat/fix/perf or breaking commits since v$last_version, so there is nothing to release. Enter a version to release anyway."
                 exit 1
               fi
               version="$next_version"
             else
-              # Feature branch: a pre-release named after the branch, e.g. 0.2.0-my-feature.17.
-              branch=$(echo "$REF_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^0-9a-z-]+/-/g; s/-+/-/g; s/^-|-$//g')
-              [[ -z "$branch" || "$branch" =~ ^[0-9]+$ ]] && branch="b$branch"
-              version="$dev_base-$branch.$RUN_NUMBER"
+              # alpha / beta, e.g. 0.2.0-alpha.1, then 0.2.0-alpha.2, then 0.2.0-beta.1.
+              version=$(next_prerelease "$dev_base" "$channel")
             fi
           elif [[ "$EVENT" == "pull_request" ]]; then
             version="$dev_base-pr.$PR_NUMBER.$RUN_NUMBER"
